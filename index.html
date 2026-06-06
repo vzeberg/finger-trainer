@@ -20,6 +20,7 @@
     background:var(--bg); color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
     display:flex; flex-direction:column;
+    position:fixed; top:0; right:0; bottom:0; left:0;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     overflow:hidden; user-select:none; -webkit-user-select:none;
   }
@@ -80,7 +81,7 @@
   .reps button.sel{background:rgba(58,214,255,.15); border-color:var(--accent2); color:var(--accent2);}
 
   /* footer start */
-  .footer{padding:10px 16px calc(10px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); background:var(--bg);}
+  .footer{padding:10px 16px; border-top:1px solid var(--line); background:var(--bg);}
   .bigbtn{width:100%; padding:17px; border:none; border-radius:15px; font-size:18px; font-weight:800;
     color:#0e1116; background:var(--on); cursor:pointer; letter-spacing:.3px;}
   .bigbtn.stop{background:#ff5466; color:#fff;}
@@ -115,7 +116,7 @@
 
 <!-- ===== SETUP ===== -->
 <div class="screen" id="setup">
-  <div class="section-title">Аппликатуры (тапни цифру вверху — выберется весь столбец)</div>
+  <div style="height:6px"></div>
   <div class="grid colhead" id="colhead"></div>
   <div class="grid" id="grid"></div>
   <div class="row-actions">
