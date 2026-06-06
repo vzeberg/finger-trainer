@@ -304,17 +304,24 @@ function advance(){
 }
 
 function scheduler(){
-  while(nextNoteTime < ctx.currentTime + SCHEDULE_AHEAD){
-    if(phase==="play"){
-      const patIdx=order[posInOrder];
-      click(nextNoteTime, beat===0);
-      uiQueue.push({time:nextNoteTime, kind:"play", patIdx, beat, finger:PATTERNS[patIdx][beat]});
-    }else{
-      const nextPat=order[(posInOrder+1)%order.length];
-      click(nextNoteTime, false);
-      uiQueue.push({time:nextNoteTime, kind:"pause", patIdx:nextPat, pauseBeat, pauseTotal:PAUSE_BEATS});
+  if(ctx.state==="running"){
+    // after iOS throttles timers in background, time can fall behind — catch up instead of
+    // dumping a burst of past-due clicks (or going silent)
+    if(nextNoteTime < ctx.currentTime){ nextNoteTime = ctx.currentTime + 0.05; }
+    while(nextNoteTime < ctx.currentTime + SCHEDULE_AHEAD){
+      if(phase==="play"){
+        const patIdx=order[posInOrder];
+        click(nextNoteTime, beat===0);
+        uiQueue.push({time:nextNoteTime, kind:"play", patIdx, beat, finger:PATTERNS[patIdx][beat]});
+      }else{
+        const nextPat=order[(posInOrder+1)%order.length];
+        click(nextNoteTime, false);
+        uiQueue.push({time:nextNoteTime, kind:"pause", patIdx:nextPat, pauseBeat, pauseTotal:PAUSE_BEATS});
+      }
+      advance();
     }
-    advance();
+  }else if(playing){
+    ctx.resume().catch(()=>{});   // best-effort revive after an iOS interruption
   }
   timerId=setTimeout(scheduler,LOOKAHEAD);
 }
@@ -379,13 +386,19 @@ async function keepAwake(on){
     else if(wakeLock){ await wakeLock.release(); wakeLock=null; }
   }catch(e){}
 }
-document.addEventListener("visibilitychange",()=>{ if(playing && document.visibilityState==="visible") keepAwake(true); });
+function resumeAudio(){ if(ctx && ctx.state!=="running") ctx.resume().catch(()=>{}); }
+document.addEventListener("visibilitychange",()=>{
+  if(playing && document.visibilityState==="visible"){ keepAwake(true); resumeAudio(); }
+});
+// any touch revives audio after an iOS interruption (call/notification/lock/control-center)
+document.addEventListener("pointerdown",()=>{ if(playing) resumeAudio(); }, {passive:true});
 
 /* ---- start / stop ---- */
 async function startPlay(){
   if(selected.size===0) return;
   ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
-  if(ctx.state==="suspended") await ctx.resume();
+  ctx.onstatechange=()=>{ if(playing && ctx.state!=="running") ctx.resume().catch(()=>{}); };
+  if(ctx.state!=="running") await ctx.resume().catch(()=>{});
 
   order=[...selected].sort((a,b)=>a-b);
   posInOrder=0; beat=0; rep=0; phase="play"; pauseBeat=0; lastPatIdx=-1; uiQueue=[];
