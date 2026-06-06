@@ -88,7 +88,6 @@
 
   /* PLAY screen */
   #play{display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; height:100%;}
-  .nowpat{font-size:13px; color:var(--muted); font-weight:700; letter-spacing:1px; margin-bottom:4px;}
   .digits{display:flex; gap:14px; margin:18px 0 22px;}
   .dig{
     width:62px; height:62px; border-radius:50%; display:flex; align-items:center; justify-content:center;
@@ -151,7 +150,6 @@
 
 <!-- ===== PLAY ===== -->
 <div class="screen hidden" id="play">
-  <div class="nowpat" id="nowPat">1-2-3-4</div>
   <div class="beats" id="beats"></div>
   <div class="digits" id="digits"></div>
   <div class="playbpm"><span id="playBpm">80</span> BPM</div>
@@ -323,7 +321,6 @@ function renderBeat(ev){
     lastPatIdx=ev.patIdx;
     const pat=PATTERNS[ev.patIdx];
     buildDigits(pat);
-    $("nowPat").textContent=fmt(pat);
     // next pattern hint
     const np=order[(order.indexOf(ev.patIdx)+1)%order.length];
     $("queue").textContent = order.length>1 ? "далее: "+fmt(PATTERNS[np]) : "";
@@ -361,7 +358,6 @@ async function startPlay(){
   // beat dots
   beatsEl.innerHTML=""; for(let i=0;i<4;i++) beatsEl.appendChild(document.createElement("i"));
   buildDigits(PATTERNS[order[0]]);
-  $("nowPat").textContent=fmt(PATTERNS[order[0]]);
 
   playing=true;
   $("setup").classList.add("hidden");
