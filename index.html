@@ -45,6 +45,14 @@
   }
   .pat.sel{background:rgba(255,179,58,.16); border-color:var(--accent); color:var(--accent);}
 
+  /* column select header */
+  .colhead{margin-bottom:7px;}
+  .colhead button{background:var(--panel2); border:1.5px solid var(--line); color:var(--muted);
+    border-radius:11px 11px 5px 5px; padding:9px 4px 7px; font-size:14px; font-weight:800; cursor:pointer;
+    line-height:1.15;}
+  .colhead button small{display:block; font-size:9px; font-weight:700; letter-spacing:.3px; opacity:.8;}
+  .colhead button.sel{background:rgba(58,214,255,.16); border-color:var(--accent2); color:var(--accent2);}
+
   .row-actions{display:flex; gap:8px; margin-top:10px;}
   .row-actions button{
     flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--muted);
@@ -107,7 +115,8 @@
 
 <!-- ===== SETUP ===== -->
 <div class="screen" id="setup">
-  <div class="section-title">Аппликатуры (выбери одну или несколько)</div>
+  <div class="section-title">Аппликатуры (тапни цифру вверху — выберется весь столбец)</div>
+  <div class="grid colhead" id="colhead"></div>
   <div class="grid" id="grid"></div>
   <div class="row-actions">
     <button id="selAll">Выбрать все</button>
@@ -131,9 +140,9 @@
   <div class="section-title">Повторов каждой аппликатуры</div>
   <div class="ctrl">
     <div class="reps" id="reps">
-      <button data-r="1">1</button>
+      <button data-r="1" class="sel">1</button>
       <button data-r="2">2</button>
-      <button data-r="4" class="sel">4</button>
+      <button data-r="4">4</button>
       <button data-r="8">8</button>
       <button data-r="0">∞</button>
     </div>
@@ -175,7 +184,7 @@ const fmt = p => p.join("-");
 /* ---- state ---- */
 let selected = new Set([0]);          // pattern indices chosen
 let bpm = 80;
-let repeats = 4;                       // 0 = infinite
+let repeats = 1;                       // 0 = infinite
 let playing = false;
 
 /* ---- build pattern grid ---- */
@@ -194,6 +203,25 @@ PATTERNS.forEach((p,i)=>{
 function refreshGrid(){
   [...grid.children].forEach((b,i)=>b.classList.toggle("sel",selected.has(i)));
   updateStart();
+}
+
+/* ---- column select (each column = indices i where i%4===c) ---- */
+const colhead = $("colhead");
+const colIdx = c => [0,1,2,3,4,5].map(r => c + r*4);   // 6 patterns of column c
+for(let c=0;c<4;c++){
+  const b=document.createElement("button");
+  b.innerHTML = (c+1)+"<small>СТОЛБЕЦ</small>";
+  b.onclick=()=>{
+    const idx=colIdx(c);
+    const allSel=idx.every(i=>selected.has(i));
+    idx.forEach(i=> allSel ? selected.delete(i) : selected.add(i));
+    refreshGrid();
+  };
+  colhead.appendChild(b);
+}
+function updateColHead(){
+  [...colhead.children].forEach((b,c)=>
+    b.classList.toggle("sel", colIdx(c).every(i=>selected.has(i))));
 }
 $("selAll").onclick=()=>{ PATTERNS.forEach((_,i)=>selected.add(i)); refreshGrid(); };
 $("selNone").onclick=()=>{ selected.clear(); refreshGrid(); };
@@ -226,7 +254,7 @@ $("reps").querySelectorAll("button").forEach(b=>{
   };
 });
 
-function updateStart(){ $("start").disabled = selected.size===0; }
+function updateStart(){ $("start").disabled = selected.size===0; updateColHead(); }
 
 /* ================= AUDIO + SCHEDULER ================= */
 let ctx=null;
