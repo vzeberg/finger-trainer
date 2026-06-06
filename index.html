@@ -292,6 +292,7 @@ function advance(){
       if(repeats!==0 && rep>=repeats){
         rep=0;
         if(pauseEnabled && order.length>1){ phase="pause"; pauseBeat=0; }  // pause only between different patterns
+        else { posInOrder=(posInOrder+1)%order.length; }                    // no pause -> switch immediately
       }
     }
   }else{ // pause
