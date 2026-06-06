@@ -59,6 +59,7 @@
     flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--muted);
     border-radius:10px; padding:9px; font-size:12.5px; font-weight:700; cursor:pointer;
   }
+  .row-actions button.on{background:rgba(43,212,125,.15); border-color:var(--on); color:var(--on);}
 
   /* controls */
   .ctrl{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-top:8px;}
@@ -118,7 +119,7 @@
   <div class="grid colhead" id="colhead"></div>
   <div class="grid" id="grid"></div>
   <div class="row-actions">
-    <button id="selAll">Выбрать все</button>
+    <button id="pauseToggle">Пауза между: выкл</button>
     <button id="selNone">Сбросить</button>
   </div>
 
@@ -220,7 +221,12 @@ function updateColHead(){
   [...colhead.children].forEach((b,c)=>
     b.classList.toggle("sel", colIdx(c).every(i=>selected.has(i))));
 }
-$("selAll").onclick=()=>{ PATTERNS.forEach((_,i)=>selected.add(i)); refreshGrid(); };
+let pauseEnabled=false;
+$("pauseToggle").onclick=()=>{
+  pauseEnabled=!pauseEnabled;
+  $("pauseToggle").classList.toggle("on",pauseEnabled);
+  $("pauseToggle").textContent="Пауза между: "+(pauseEnabled?"вкл":"выкл");
+};
 $("selNone").onclick=()=>{ selected.clear(); refreshGrid(); };
 
 /* ---- BPM ---- */
@@ -269,29 +275,45 @@ let order=[];          // selected pattern indices, in chart order
 let posInOrder=0;      // which pattern of `order`
 let beat=0;            // 0..3 within pattern
 let rep=0;             // repeat count of current pattern
+let phase="play";      // "play" | "pause"
+let pauseBeat=0;       // counter during pause
+const PAUSE_BEATS=4;   // clicks of pause before next pattern (to re-position the hand)
 let nextNoteTime=0;
 let timerId=null;
 const SCHEDULE_AHEAD=0.1, LOOKAHEAD=25;
 let uiQueue=[];
 
-function nextNote(){
+function advance(){
   nextNoteTime += 60/bpm;             // quarter-note per beat
-  beat++;
-  if(beat>3){
-    beat=0; rep++;
-    if(repeats!==0 && rep>=repeats){
-      rep=0; posInOrder=(posInOrder+1)%order.length;
+  if(phase==="play"){
+    beat++;
+    if(beat>3){
+      beat=0; rep++;
+      if(repeats!==0 && rep>=repeats){
+        rep=0;
+        if(pauseEnabled && order.length>1){ phase="pause"; pauseBeat=0; }  // pause only between different patterns
+      }
+    }
+  }else{ // pause
+    pauseBeat++;
+    if(pauseBeat>=PAUSE_BEATS){
+      phase="play"; posInOrder=(posInOrder+1)%order.length;
     }
   }
 }
 
 function scheduler(){
   while(nextNoteTime < ctx.currentTime + SCHEDULE_AHEAD){
-    const patIdx=order[posInOrder];
-    const finger=PATTERNS[patIdx][beat];
-    click(nextNoteTime, beat===0);
-    uiQueue.push({time:nextNoteTime, patIdx, beat, finger});
-    nextNote();
+    if(phase==="play"){
+      const patIdx=order[posInOrder];
+      click(nextNoteTime, beat===0);
+      uiQueue.push({time:nextNoteTime, kind:"play", patIdx, beat, finger:PATTERNS[patIdx][beat]});
+    }else{
+      const nextPat=order[(posInOrder+1)%order.length];
+      click(nextNoteTime, false);
+      uiQueue.push({time:nextNoteTime, kind:"pause", patIdx:nextPat, pauseBeat, pauseTotal:PAUSE_BEATS});
+    }
+    advance();
   }
   timerId=setTimeout(scheduler,LOOKAHEAD);
 }
@@ -319,15 +341,27 @@ let lastPatIdx=-1;
 function renderBeat(ev){
   if(ev.patIdx!==lastPatIdx){
     lastPatIdx=ev.patIdx;
-    const pat=PATTERNS[ev.patIdx];
-    buildDigits(pat);
-    // next pattern hint
-    const np=order[(order.indexOf(ev.patIdx)+1)%order.length];
-    $("queue").textContent = order.length>1 ? "далее: "+fmt(PATTERNS[np]) : "";
+    buildDigits(PATTERNS[ev.patIdx]);
   }
-  const digs=digitsEl.children;
-  [...digs].forEach((d,i)=>d.classList.toggle("active",i===ev.beat));
-  [...beatsEl.children].forEach((b,i)=>b.classList.toggle("on",i < ev.finger));
+  const digs=[...digitsEl.children];
+  const dots=[...beatsEl.children];
+
+  if(ev.kind==="pause"){
+    // show next pattern at full brightness (readable), no finger highlighted; dots count down
+    digitsEl.classList.remove("preview");
+    digs.forEach(d=>d.classList.remove("active"));
+    const left=ev.pauseTotal-ev.pauseBeat;          // 4,3,2,1
+    dots.forEach((b,i)=>b.classList.toggle("on", i<left));
+    $("queue").textContent = "приготовься: "+fmt(PATTERNS[ev.patIdx]);
+    return;
+  }
+
+  digitsEl.classList.remove("preview");
+  digs.forEach((d,i)=>d.classList.toggle("active",i===ev.beat));
+  dots.forEach((b,i)=>b.classList.toggle("on",i < ev.finger));
+  const cur=order.indexOf(ev.patIdx);
+  const np=order[(cur+1)%order.length];
+  $("queue").textContent = order.length>1 ? "далее: "+fmt(PATTERNS[np]) : "";
   // screen flash on downbeat
   if(ev.beat===0){
     const f=$("flash");
@@ -353,7 +387,8 @@ async function startPlay(){
   if(ctx.state==="suspended") await ctx.resume();
 
   order=[...selected].sort((a,b)=>a-b);
-  posInOrder=0; beat=0; rep=0; lastPatIdx=-1; uiQueue=[];
+  posInOrder=0; beat=0; rep=0; phase="play"; pauseBeat=0; lastPatIdx=-1; uiQueue=[];
+  digitsEl.classList.remove("preview");
 
   // beat dots
   beatsEl.innerHTML=""; for(let i=0;i<4;i++) beatsEl.appendChild(document.createElement("i"));
