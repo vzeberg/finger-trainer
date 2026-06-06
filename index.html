@@ -140,9 +140,9 @@
   <div class="section-title">Повторов каждой аппликатуры</div>
   <div class="ctrl">
     <div class="reps" id="reps">
-      <button data-r="1" class="sel">1</button>
+      <button data-r="1">1</button>
       <button data-r="2">2</button>
-      <button data-r="4">4</button>
+      <button data-r="6" class="sel">6</button>
       <button data-r="8">8</button>
       <button data-r="0">∞</button>
     </div>
@@ -184,7 +184,7 @@ const fmt = p => p.join("-");
 /* ---- state ---- */
 let selected = new Set([0]);          // pattern indices chosen
 let bpm = 80;
-let repeats = 1;                       // 0 = infinite
+let repeats = 6;                       // 0 = infinite
 let playing = false;
 
 /* ---- build pattern grid ---- */
