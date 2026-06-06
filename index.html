@@ -62,10 +62,9 @@
 
   /* controls */
   .ctrl{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-top:8px;}
-  .ctrl .label{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
-  .ctrl .label span:first-child{font-size:13px; color:var(--muted); font-weight:700;}
-  .bpmval{font-size:30px; font-weight:800; font-variant-numeric:tabular-nums;}
-  .bpmval small{font-size:13px; color:var(--muted); font-weight:600; margin-left:3px;}
+  .ctrl .label{display:flex; justify-content:center; align-items:center; margin-bottom:8px;}
+  .bpmval{font-size:13px; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums;}
+  .bpmval small{font-size:13px; color:var(--accent); font-weight:700; margin-left:3px;}
   input[type=range]{width:100%; -webkit-appearance:none; height:6px; border-radius:3px;
     background:linear-gradient(90deg,#3ad6ff,#ffe14d,#ff5466); margin:6px 0;}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:26px; height:26px;
@@ -127,13 +126,12 @@
   <div style="height:14px"></div>
   <div class="ctrl">
     <div class="label">
-      <span>Темп</span>
       <span class="bpmval"><span id="bpmNum">80</span><small>BPM</small></span>
     </div>
     <input type="range" id="bpm" min="30" max="240" value="80">
     <div class="stepper">
       <button id="bpmMinus">–</button>
-      <button class="tap" id="tap">TAP TEMPO</button>
+      <button class="tap" id="tap">Темп</button>
       <button id="bpmPlus">+</button>
     </div>
   </div>
