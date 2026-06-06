@@ -34,7 +34,7 @@
   .hidden{display:none !important;}
 
   .section-title{font-size:12px; color:var(--muted); font-weight:700; text-transform:uppercase;
-    letter-spacing:.6px; margin:14px 4px 8px;}
+    letter-spacing:.6px; margin:28px 4px 8px;}
 
   /* pattern grid */
   .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:7px;}
@@ -327,7 +327,7 @@ function renderBeat(ev){
   }
   const digs=digitsEl.children;
   [...digs].forEach((d,i)=>d.classList.toggle("active",i===ev.beat));
-  [...beatsEl.children].forEach((b,i)=>b.classList.toggle("on",i===ev.beat));
+  [...beatsEl.children].forEach((b,i)=>b.classList.toggle("on",i < ev.finger));
   // screen flash on downbeat
   if(ev.beat===0){
     const f=$("flash");
