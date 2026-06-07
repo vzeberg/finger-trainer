@@ -90,7 +90,6 @@
   /* PLAY screen */
   #play{display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; height:100%;}
   .digits{display:flex; gap:14px; margin:18px 0 22px;}
-  .countnum{font-size:62px; font-weight:800; color:var(--accent2); line-height:62px; font-variant-numeric:tabular-nums;}
   .dig{
     width:62px; height:62px; border-radius:50%; display:flex; align-items:center; justify-content:center;
     font-size:30px; font-weight:800; background:var(--panel); border:2px solid var(--line);
@@ -356,17 +355,10 @@ function buildDigits(pat){
 }
 let lastPatIdx=-1;
 function renderBeat(ev){
-  if(ev.kind==="count"){                            // intro: big countdown number
-    lastPatIdx=-1;                                   // force pattern rebuild when playback starts
-    digitsEl.innerHTML='<div class="countnum">'+ev.n+'</div>';
-    [...beatsEl.children].forEach((b,i)=>b.classList.toggle("on", i<ev.n));
-    $("queue").textContent="приготовься: "+fmt(PATTERNS[ev.patIdx]);
-    return;
-  }
-  if(ev.kind==="pause"){                             // between patterns: show NEXT combo big, dots count down
+  if(ev.kind==="count" || ev.kind==="pause"){       // intro & between patterns: show upcoming combo big, dots count down
     if(ev.patIdx!==lastPatIdx){ lastPatIdx=ev.patIdx; buildDigits(PATTERNS[ev.patIdx]); }
     [...digitsEl.children].forEach(d=>d.classList.remove("active"));
-    const left=ev.pauseTotal-ev.pauseBeat;          // 4,3,2,1
+    const left = ev.kind==="count" ? ev.n : (ev.pauseTotal-ev.pauseBeat);   // 4,3,2,1
     [...beatsEl.children].forEach((b,i)=>b.classList.toggle("on", i<left));
     $("queue").textContent="приготовься: "+fmt(PATTERNS[ev.patIdx]);
     return;
