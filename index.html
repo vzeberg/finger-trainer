@@ -374,7 +374,7 @@ function renderBeat(ev){
 
   digitsEl.classList.remove("preview");
   digs.forEach((d,i)=>d.classList.toggle("active",i===ev.beat));
-  dots.forEach((b,i)=>b.classList.toggle("on",i < ev.finger));
+  dots.forEach((b,i)=>b.classList.toggle("on",i===ev.beat));
   const cur=order.indexOf(ev.patIdx);
   const np=order[(cur+1)%order.length];
   $("queue").textContent = order.length>1 ? "далее: "+fmt(PATTERNS[np]) : "";
