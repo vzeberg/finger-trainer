@@ -356,12 +356,18 @@ function buildDigits(pat){
 }
 let lastPatIdx=-1;
 function renderBeat(ev){
-  if(ev.kind==="count" || ev.kind==="pause"){       // same countdown timer: intro and between patterns
-    const num = ev.kind==="count" ? ev.n : (ev.pauseTotal-ev.pauseBeat);   // 4,3,2,1
-    lastPatIdx=-1;                                   // force pattern rebuild when playback (re)starts
-    digitsEl.classList.remove("preview");
-    digitsEl.innerHTML='<div class="countnum">'+num+'</div>';
-    [...beatsEl.children].forEach((b,i)=>b.classList.toggle("on", i<num));
+  if(ev.kind==="count"){                            // intro: big countdown number
+    lastPatIdx=-1;                                   // force pattern rebuild when playback starts
+    digitsEl.innerHTML='<div class="countnum">'+ev.n+'</div>';
+    [...beatsEl.children].forEach((b,i)=>b.classList.toggle("on", i<ev.n));
+    $("queue").textContent="приготовься: "+fmt(PATTERNS[ev.patIdx]);
+    return;
+  }
+  if(ev.kind==="pause"){                             // between patterns: show NEXT combo big, dots count down
+    if(ev.patIdx!==lastPatIdx){ lastPatIdx=ev.patIdx; buildDigits(PATTERNS[ev.patIdx]); }
+    [...digitsEl.children].forEach(d=>d.classList.remove("active"));
+    const left=ev.pauseTotal-ev.pauseBeat;          // 4,3,2,1
+    [...beatsEl.children].forEach((b,i)=>b.classList.toggle("on", i<left));
     $("queue").textContent="приготовься: "+fmt(PATTERNS[ev.patIdx]);
     return;
   }
@@ -374,7 +380,7 @@ function renderBeat(ev){
 
   digitsEl.classList.remove("preview");
   digs.forEach((d,i)=>d.classList.toggle("active",i===ev.beat));
-  dots.forEach((b,i)=>b.classList.toggle("on",i===ev.beat));
+  dots.forEach((b,i)=>b.classList.toggle("on",i<=ev.beat));
   const cur=order.indexOf(ev.patIdx);
   const np=order[(cur+1)%order.length];
   $("queue").textContent = order.length>1 ? "далее: "+fmt(PATTERNS[np]) : "";
