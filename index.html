@@ -90,6 +90,7 @@
   /* PLAY screen */
   #play{display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; height:100%;}
   .digits{display:flex; gap:14px; margin:18px 0 22px;}
+  .countnum{font-size:62px; font-weight:800; color:var(--accent2); line-height:62px; font-variant-numeric:tabular-nums;}
   .dig{
     width:62px; height:62px; border-radius:50%; display:flex; align-items:center; justify-content:center;
     font-size:30px; font-weight:800; background:var(--panel); border:2px solid var(--line);
@@ -278,6 +279,8 @@ let rep=0;             // repeat count of current pattern
 let phase="play";      // "play" | "pause"
 let pauseBeat=0;       // counter during pause
 const PAUSE_BEATS=4;   // clicks of pause before next pattern (to re-position the hand)
+let countIn=0;         // remaining intro count-in clicks before playback
+const COUNT_BEATS=4;   // length of the intro count-down (4 -> 1)
 let nextNoteTime=0;
 let timerId=null;
 const SCHEDULE_AHEAD=0.1, LOOKAHEAD=25;
@@ -309,13 +312,19 @@ function scheduler(){
     // dumping a burst of past-due clicks (or going silent)
     if(nextNoteTime < ctx.currentTime){ nextNoteTime = ctx.currentTime + 0.05; }
     while(nextNoteTime < ctx.currentTime + SCHEDULE_AHEAD){
+      if(countIn>0){                                  // intro count-down 4..1 before playback
+        click(nextNoteTime, countIn===1);
+        uiQueue.push({time:nextNoteTime, kind:"count", n:countIn, patIdx:order[0]});
+        countIn--; nextNoteTime += 60/bpm;
+        continue;
+      }
       if(phase==="play"){
         const patIdx=order[posInOrder];
         click(nextNoteTime, beat===0);
         uiQueue.push({time:nextNoteTime, kind:"play", patIdx, beat, finger:PATTERNS[patIdx][beat]});
       }else{
         const nextPat=order[(posInOrder+1)%order.length];
-        click(nextNoteTime, false);
+        click(nextNoteTime, (PAUSE_BEATS-pauseBeat)===1);   // accent the final "1" before resuming
         uiQueue.push({time:nextNoteTime, kind:"pause", patIdx:nextPat, pauseBeat, pauseTotal:PAUSE_BEATS});
       }
       advance();
@@ -347,22 +356,21 @@ function buildDigits(pat){
 }
 let lastPatIdx=-1;
 function renderBeat(ev){
+  if(ev.kind==="count" || ev.kind==="pause"){       // same countdown timer: intro and between patterns
+    const num = ev.kind==="count" ? ev.n : (ev.pauseTotal-ev.pauseBeat);   // 4,3,2,1
+    lastPatIdx=-1;                                   // force pattern rebuild when playback (re)starts
+    digitsEl.classList.remove("preview");
+    digitsEl.innerHTML='<div class="countnum">'+num+'</div>';
+    [...beatsEl.children].forEach((b,i)=>b.classList.toggle("on", i<num));
+    $("queue").textContent="приготовься: "+fmt(PATTERNS[ev.patIdx]);
+    return;
+  }
   if(ev.patIdx!==lastPatIdx){
     lastPatIdx=ev.patIdx;
     buildDigits(PATTERNS[ev.patIdx]);
   }
   const digs=[...digitsEl.children];
   const dots=[...beatsEl.children];
-
-  if(ev.kind==="pause"){
-    // show next pattern at full brightness (readable), no finger highlighted; dots count down
-    digitsEl.classList.remove("preview");
-    digs.forEach(d=>d.classList.remove("active"));
-    const left=ev.pauseTotal-ev.pauseBeat;          // 4,3,2,1
-    dots.forEach((b,i)=>b.classList.toggle("on", i<left));
-    $("queue").textContent = "приготовься: "+fmt(PATTERNS[ev.patIdx]);
-    return;
-  }
 
   digitsEl.classList.remove("preview");
   digs.forEach((d,i)=>d.classList.toggle("active",i===ev.beat));
@@ -401,7 +409,7 @@ async function startPlay(){
   if(ctx.state!=="running") await ctx.resume().catch(()=>{});
 
   order=[...selected].sort((a,b)=>a-b);
-  posInOrder=0; beat=0; rep=0; phase="play"; pauseBeat=0; lastPatIdx=-1; uiQueue=[];
+  posInOrder=0; beat=0; rep=0; phase="play"; pauseBeat=0; countIn=COUNT_BEATS; lastPatIdx=-1; uiQueue=[];
   digitsEl.classList.remove("preview");
 
   // beat dots
